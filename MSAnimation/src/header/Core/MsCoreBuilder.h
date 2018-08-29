@@ -3,7 +3,6 @@
 // Global includes
 #include <string>
 #include <iostream>
-#include <memory>
 
 // Local includes
 #include <Core/CoreBuilder.h>
@@ -12,6 +11,7 @@
 #include <Sidebar/MsSidebarBuilder.h>
 #include <FileManager/FileManagerDirector.h>
 #include <FileManager/MsFileManagerBuilder.h>
+#include <ModelManager/ModelManager.h>
 
 class MsCoreBuilder : public CoreBuilder {
 public:

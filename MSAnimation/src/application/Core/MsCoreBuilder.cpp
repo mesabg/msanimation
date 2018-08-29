@@ -29,8 +29,12 @@ void MsCoreBuilder::buildCoreColleagues()
 	fileManagerDirector->buildFileManager(this->core);
 	FileManager* fileManager = fileManagerDirector->getFileManager();
 
+	// Build Model Manager
+	ModelManager* modelManager = ModelManager::instance(this->core);
+
 	// Add instances to Core Mediator
 	this->core->add(sidebar);
 	this->core->add(fileManager);
+	this->core->add(modelManager);
 	this->core->add(gui);
 }

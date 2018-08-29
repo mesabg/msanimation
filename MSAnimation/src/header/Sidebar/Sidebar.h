@@ -21,7 +21,7 @@ using glm::quat;
 using std::cout;
 using std::endl;
 
-typedef enum { 
+enum SelectOption {
 	OPTION0,
 	OPTION1,
 	OPTION2,
@@ -43,7 +43,7 @@ typedef enum {
 	OPTION18,
 	OPTION19,
 	OPTION20,
-} SelectOption;
+};
 
 class Sidebar : public CoreColleague {
 private:
