@@ -193,7 +193,8 @@ void ModelManager::receive(string message, void * data)
 	if (message == "FileManager::fileReaded") {
 		string filePath((char*)data);
 		// Proccess the data
-		this->load(filePath);
+		Model* model = this->load(filePath);
+		this->send("ModelManager::modelLoaded", (void*)model);
 	}
 }
 

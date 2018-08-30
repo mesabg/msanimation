@@ -12,6 +12,8 @@
 #include <FileManager/FileManagerDirector.h>
 #include <FileManager/MsFileManagerBuilder.h>
 #include <ModelManager/ModelManager.h>
+#include <Stage/StageDirector.h>
+#include <Stage/MsStageBuilder.h>
 
 class MsCoreBuilder : public CoreBuilder {
 public:
