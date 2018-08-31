@@ -1,8 +1,9 @@
 #include <Model/Mesh.h>
 
-Mesh::Mesh()
+
+Mesh::Mesh(vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures) :vertices(vertices), indices(indices), textures(textures) 
 {
-	// Do somenthing
+	this->buildBuffers();
 }
 
 Mesh::~Mesh()

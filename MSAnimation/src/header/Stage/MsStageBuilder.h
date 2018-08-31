@@ -15,4 +15,5 @@ public:
 
 	void buildCamera() override;
 	void buildModels() override;
+	void buildShader() override;
 };

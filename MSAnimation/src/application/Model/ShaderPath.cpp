@@ -1,11 +1,17 @@
 #include <Model/ShaderPath.h>
 
-ShaderPath::~ShaderPath()
+ShaderPath::ShaderPath(string source, ShaderType type)
 {
-	delete this->source;
+	this->source = (GLchar*)source.c_str();
+	this->type = type;
 }
 
-GLchar * ShaderPath::getSource()
+ShaderPath::~ShaderPath()
+{
+	// Do something
+}
+
+string ShaderPath::getSource()
 {
 	return this->source;
 }
@@ -15,7 +21,7 @@ ShaderType ShaderPath::getType()
 	return this->type;
 }
 
-void ShaderPath::setSource(GLchar * source)
+void ShaderPath::setSource(string source)
 {
 	this->source = source;
 }

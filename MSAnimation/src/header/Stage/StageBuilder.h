@@ -19,5 +19,6 @@ public:
 	void createNewStage(Core* mediator);
 
 	virtual void buildCamera() = 0;
+	virtual void buildShader() = 0;
 	virtual void buildModels() = 0;
 };

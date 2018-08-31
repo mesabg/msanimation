@@ -81,7 +81,7 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 		vertex.setNormal(vector);
 
 		// Texture Coordinates
-		if (mesh->mTextureCoords[0]) // Does the mesh contain texture coordinates?
+		if (mesh->HasTextureCoords(0)) // Does the mesh contain texture coordinates?
 		{
 			glm::vec2 vec;
 			// A vertex can contain up to 8 different texture coordinates. We thus make the assumption that we won't
@@ -94,6 +94,13 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 		{
 			vertex.setTexCoords(glm::vec2(0.0f, 0.0f));
 		}
+
+		//-- Tangents (Bi-Tangents will be calculated in the vertex shader)
+		/*if (mesh->HasTangentsAndBitangents()) {
+			this->glVBO.push_back(mesh->mTangents[j].x);
+			this->glVBO.push_back(mesh->mTangents[j].y);
+			this->glVBO.push_back(mesh->mTangents[j].z);
+		}*/
 
 		vertices.push_back(vertex);
 	}

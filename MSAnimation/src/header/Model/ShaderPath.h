@@ -17,22 +17,24 @@ using std::ifstream;
 using std::stringstream;
 using std::cout;
 using std::endl;
+using std::cerr;
+using std::istreambuf_iterator;
 
 enum ShaderType { VERTEX, FRAGMENT, GEOMETRY, TESSELLATION };
 
 class ShaderPath {
 private:
-	GLchar* source;
+	string source;
 	ShaderType type;
 
 public:
 	ShaderPath() {}
-	ShaderPath(GLchar* source, ShaderType type) :source(source), type(type) {}
+	ShaderPath(string source, ShaderType type);
 	~ShaderPath();
 
 	// Getters and setters
-	GLchar* getSource();
+	string getSource();
 	ShaderType getType();
-	void setSource(GLchar* source);
+	void setSource(string source);
 	void setType(ShaderType type);
 };

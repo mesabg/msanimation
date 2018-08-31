@@ -23,8 +23,7 @@ private:
 	GLuint VAO, VBO, EBO;
 
 public:
-	Mesh();
-	Mesh(vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures) :vertices(vertices), indices(indices), textures(textures) {}
+	Mesh(vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures);
 	~Mesh();
 
 	// Getter and setters

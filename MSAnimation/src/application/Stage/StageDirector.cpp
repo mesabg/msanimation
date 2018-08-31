@@ -19,5 +19,6 @@ void StageDirector::buildStage(Core* mediator)
 {
 	this->stageBuilder->createNewStage(mediator);
 	this->stageBuilder->buildCamera();
+	this->stageBuilder->buildShader();
 	this->stageBuilder->buildModels();
 }
