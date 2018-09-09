@@ -13,7 +13,7 @@ MsStageBuilder::~MsStageBuilder()
 void MsStageBuilder::buildCamera()
 {
 	// Create camera
-	Camera* camera = Camera::instance(vec3(0.0f, 0.0f, 3.0f));
+	Camera* camera = Camera::instance(vec3(0.0f, 0.0f, 30.0f));
 	this->stage->setCamera(camera);
 	this->stage->updateProjection(1440, 900);
 }

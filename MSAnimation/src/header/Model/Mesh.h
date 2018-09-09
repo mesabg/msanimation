@@ -19,11 +19,15 @@ private:
 	vector<GLuint> indices;
 	vector<Texture> textures;
 
+	// Normalize data
+	vec3 min;
+	vec3 max;
+
 	// Render Data
 	GLuint VAO, VBO, EBO;
 
 public:
-	Mesh(vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures);
+	Mesh(vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures, vec3 min = vec3(0.0f, 0.0f, 0.0f), vec3 max = vec3(0.0f, 0.0f, 0.0f));
 	~Mesh();
 
 	// Getter and setters
@@ -37,4 +41,5 @@ public:
 	// General functions
 	void render(Shader* shader);
 	void buildBuffers();
+	void normalize();
 };

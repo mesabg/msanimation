@@ -98,6 +98,7 @@ bool GUI::initGlfw()
 	glfwSetCursorPosCallback(GUI::gWindow, cursorPos);
 	glfwSetScrollCallback(GUI::gWindow, scroll);
 
+	cout << "Window started :: " << endl;
 	this->send("GUI::windowStarted", (void*)(new int[2]{ GUI::gWidth, GUI::gHeight }));
 
 	return true;

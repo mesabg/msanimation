@@ -35,6 +35,13 @@ void Model::setMeshes(vector<Mesh> meshes)
 	this->meshes = meshes;
 }
 
+void Model::setMesh(int index, Mesh mesh)
+{
+	if (index >= this->meshes.size()) return;
+	cout << "Setting mesh" << endl;
+	this->meshes[index] = mesh;
+}
+
 void Model::setDirectory(string directory)
 {
 	this->directory = directory;

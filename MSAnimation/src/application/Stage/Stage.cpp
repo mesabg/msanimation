@@ -44,9 +44,9 @@ void Stage::send(string message, void * data)
 void Stage::receive(string message, void * data)
 {
 	// Receive and proccess signals
-	if (message == "GUI::windowStarted") {
-		const int width = ((int*)data)[0];
-		const int height = ((int*)data)[0];
+	if (message == "Core::initialize") {
+		const int width = (int)((float*)data)[0];
+		const int height = (int)((float*)data)[1];
 		this->updateProjection(width, height);
 	}
 

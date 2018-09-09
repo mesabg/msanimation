@@ -29,10 +29,18 @@ Model * ModelManager::load(string filePath)
 		return NULL;
 	}
 	// Retrieve the directory path of the filepath
-	model->setDirectory( filePath.substr(0, filePath.find_last_of('/')) );
+	model->setDirectory( filePath.substr(0, filePath.find_last_of("/\\")) );
 
 	// Process ASSIMP's root node recursively
 	this->processNode(model, scene->mRootNode, scene);
+
+	// Normalize meshes
+	int meshIndex = 0;
+	for (Mesh mesh : model->getMeshes()) {
+		mesh.normalize();
+		model->setMesh(meshIndex, mesh);
+	}
+
 	return model;
 }
 
@@ -62,9 +70,29 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 	vector<GLuint> indices;
 	vector<Texture> textures;
 
+	// Max/Min positions
+	vec3 min = vec3(0.0f, 0.0f, 0.0f);
+	vec3 max = vec3(0.0f, 0.0f, 0.0f);
+
 	// Walk through each of the mesh's vertices
 	for (GLuint i = 0; i < mesh->mNumVertices; i++)
 	{
+		if (i == 0) {
+			min.x = max.x = mesh->mVertices[i].x;
+			min.y = max.y = mesh->mVertices[i].y;
+			min.z = max.z = mesh->mVertices[i].z;
+		} else {
+			// -- Min
+			min.x = mesh->mVertices[i].x < min.x ? mesh->mVertices[i].x : min.x;
+			min.y = mesh->mVertices[i].y < min.y ? mesh->mVertices[i].y : min.y;
+			min.z = mesh->mVertices[i].z < min.z ? mesh->mVertices[i].z : min.z;
+
+			// -- Max
+			max.x = mesh->mVertices[i].x > max.x ? mesh->mVertices[i].x : max.x;
+			max.y = mesh->mVertices[i].y > max.y ? mesh->mVertices[i].y : max.y;
+			max.z = mesh->mVertices[i].z > max.z ? mesh->mVertices[i].z : max.z;
+		}
+
 		Vertex vertex;
 		glm::vec3 vector; // We declare a placeholder vector since assimp uses its own vector class that doesn't directly convert to glm's vec3 class so we transfer the data to this placeholder glm::vec3 first.
 
@@ -72,13 +100,13 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 		vector.x = mesh->mVertices[i].x;
 		vector.y = mesh->mVertices[i].y;
 		vector.z = mesh->mVertices[i].z;
-		vertex.setPosition(vector);
+		vertex.position = vector;
 
 		// Normals
 		vector.x = mesh->mNormals[i].x;
 		vector.y = mesh->mNormals[i].y;
 		vector.z = mesh->mNormals[i].z;
-		vertex.setNormal(vector);
+		vertex.normal = vector;
 
 		// Texture Coordinates
 		if (mesh->HasTextureCoords(0)) // Does the mesh contain texture coordinates?
@@ -88,11 +116,11 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 			// use models where a vertex can have multiple texture coordinates so we always take the first set (0).
 			vec.x = mesh->mTextureCoords[0][i].x;
 			vec.y = mesh->mTextureCoords[0][i].y;
-			vertex.setTexCoords(vec);
+			vertex.texCoords = vec;
 		}
 		else
 		{
-			vertex.setTexCoords(glm::vec2(0.0f, 0.0f));
+			vertex.texCoords = glm::vec2(0.0f, 0.0f);
 		}
 
 		//-- Tangents (Bi-Tangents will be calculated in the vertex shader)
@@ -137,7 +165,7 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 	}
 
 	// Return a mesh object created from the extracted mesh data
-	return Mesh(vertices, indices, textures);
+	return Mesh(vertices, indices, textures, min, max);
 }
 
 vector<Texture> ModelManager::loadMaterialTextures(Model * model, aiMaterial * mat, aiTextureType type, string typeName)
@@ -154,7 +182,7 @@ vector<Texture> ModelManager::loadMaterialTextures(Model * model, aiMaterial * m
 
 		for (GLuint j = 0; j < model->getTextures().size(); j++)
 		{
-			if (model->getTexture(j).getPath() == str)
+			if (model->getTexture(j).path == str)
 			{
 				textures.push_back(model->getTexture(j));
 				skip = true; // A texture with the same filepath has already been loaded, continue to next one. (optimization)
@@ -165,9 +193,9 @@ vector<Texture> ModelManager::loadMaterialTextures(Model * model, aiMaterial * m
 		if (!skip)
 		{   // If texture hasn't been loaded already, load it
 			Texture texture;
-			texture.setId(TextureFromFile(str.C_Str(), model->getDirectory()));
-			texture.setType(typeName);
-			texture.setPath(str);
+			texture.id = TextureFromFile(str.C_Str(), model->getDirectory());
+			texture.type = typeName;
+			texture.path = str;
 			textures.push_back(texture);
 
 			model->addTexture(texture); // Store it as texture loaded for entire model, to ensure we won't unnecesery load duplicate textures.
@@ -209,13 +237,15 @@ GLint TextureFromFile(const char * path, string directory)
 {
 	//Generate texture ID and load texture data
 	string filename = string(path);
-	filename = directory + '/' + filename;
+	filename = directory + "\\" + filename;
 	GLuint textureID;
 	glGenTextures(1, &textureID);
 
 	int width, height;
 
 	unsigned char *image = SOIL_load_image(filename.c_str(), &width, &height, 0, SOIL_LOAD_RGB);
+
+	string response = image == NULL ? "IMAGE DOES NOT EXIST" : "IMAGE IS LOADED";
 
 	// Assign texture to ID
 	glBindTexture(GL_TEXTURE_2D, textureID);

@@ -6,6 +6,9 @@
 #include <glew/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/transform.hpp>
 
 // Local includes
 
@@ -17,8 +20,8 @@ using glm::mat4;
 enum CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT };
 
 // Default camera values
-const GLfloat YAW = -90.0f;
-const GLfloat PITCH = 0.0f;
+const GLfloat YAW = 0.0f;
+const GLfloat PITCH = 30.0f;
 const GLfloat SPEED = 6.0f;
 const GLfloat SENSITIVTY = 0.25f;
 const GLfloat ZOOM = 45.0f;
@@ -28,15 +31,15 @@ private:
 	static Camera* uniqueCamera;
 
 	// Initializers
-	Camera(vec3 position = vec3(0.0f, 0.0f, 0.0f), vec3 up = vec3(0.0f, 1.0f, 0.0f), GLfloat yaw = YAW, GLfloat pitch = PITCH);
+	Camera(vec3 position = vec3(0.0f, 0.0f, 20.0f), GLfloat yaw = YAW, GLfloat pitch = PITCH, GLfloat zoom = ZOOM);
 	~Camera();
+
+	// View matrix
+	mat4 view;
 
 	// Camera Attributes
 	vec3 position;
-	vec3 front;
 	vec3 up;
-	vec3 right;
-	vec3 worldUp;
 
 	// Eular Angles
 	GLfloat yaw;
@@ -52,7 +55,7 @@ private:
 
 public:
 	// Get Instance
-	static Camera* instance(vec3 position = vec3(0.0f, 0.0f, 0.0f), vec3 up = vec3(0.0f, 1.0f, 0.0f), GLfloat yaw = YAW, GLfloat pitch = PITCH);
+	static Camera* instance(vec3 position = vec3(0.0f, 0.0f, 20.0f), GLfloat yaw = YAW, GLfloat pitch = PITCH, GLfloat zoom = ZOOM);
 	static void destroy();
 
 	// Getters and setters
