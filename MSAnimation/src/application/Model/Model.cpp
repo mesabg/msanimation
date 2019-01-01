@@ -30,9 +30,19 @@ Texture Model::getTexture(int index)
 	return this->textures[index];
 }
 
+ComplexMesh * Model::getComplexMesh()
+{
+	return this->complexMesh;
+}
+
 void Model::setMeshes(vector<Mesh> meshes)
 {
 	this->meshes = meshes;
+}
+
+void Model::setComplexMesh(ComplexMesh * complexMesh)
+{
+	this->complexMesh = complexMesh;
 }
 
 void Model::setMesh(int index, Mesh mesh)

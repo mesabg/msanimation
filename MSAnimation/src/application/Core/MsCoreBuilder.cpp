@@ -39,6 +39,9 @@ void MsCoreBuilder::buildCoreColleagues()
 	stageDirector->buildStage(this->core);
 	Stage* stage = stageDirector->getStage();
 
+	// Processor
+	Processor* processor = Processor::instance(this->core);
+
 	// Add instances to Core Mediator
 	this->core->add(sidebar);
 	this->core->add(fileManager);

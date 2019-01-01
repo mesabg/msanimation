@@ -1,4 +1,6 @@
 #pragma once
+#pragma warning(disable:4996)
+#pragma warning(disable:4146)
 
 // Global includes
 #include <assimp/Importer.hpp>
@@ -10,10 +12,13 @@
 #include <Core/CoreColleague.h>
 #include <Core/Core.h>
 #include <Model/Model.h>
+#include <igl/readOBJ.h>
 
 // Using spaces
 using std::cout;
 using std::endl;
+using Eigen::MatrixXd;
+using Eigen::MatrixXi;
 
 class ModelManager : public CoreColleague
 {

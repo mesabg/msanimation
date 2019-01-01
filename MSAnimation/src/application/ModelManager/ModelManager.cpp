@@ -20,7 +20,7 @@ Model * ModelManager::load(string filePath)
 
 	// Read file via ASSIMP
 	Assimp::Importer importer;
-	const aiScene *scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs);
+	const aiScene *scene = importer.ReadFile(filePath, aiProcessPreset_TargetRealtime_MaxQuality);
 
 	// Check for errors
 	if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
@@ -70,6 +70,9 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 	vector<GLuint> indices;
 	vector<Texture> textures;
 
+	// Extra data
+	vector<vec3> positions;
+
 	// Max/Min positions
 	vec3 min = vec3(0.0f, 0.0f, 0.0f);
 	vec3 max = vec3(0.0f, 0.0f, 0.0f);
@@ -101,12 +104,17 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 		vector.y = mesh->mVertices[i].y;
 		vector.z = mesh->mVertices[i].z;
 		vertex.position = vector;
+		positions.push_back(vector);
 
 		// Normals
-		vector.x = mesh->mNormals[i].x;
-		vector.y = mesh->mNormals[i].y;
-		vector.z = mesh->mNormals[i].z;
-		vertex.normal = vector;
+		if (mesh->HasNormals()) {
+			vector.x = mesh->mNormals[i].x;
+			vector.y = mesh->mNormals[i].y;
+			vector.z = mesh->mNormals[i].z;
+			vertex.normal = vector;
+		} else {
+			vertex.normal = glm::vec3(0.0f);
+		}
 
 		// Texture Coordinates
 		if (mesh->HasTextureCoords(0)) // Does the mesh contain texture coordinates?
@@ -120,7 +128,7 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 		}
 		else
 		{
-			vertex.texCoords = glm::vec2(0.0f, 0.0f);
+			vertex.texCoords = glm::vec2(0.0f);
 		}
 
 		//-- Tangents (Bi-Tangents will be calculated in the vertex shader)
@@ -131,6 +139,13 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 		}*/
 
 		vertices.push_back(vertex);
+	}
+
+	// Unique positions (vertices)
+	std::sort(positions.begin(), positions.end());
+	positions.erase(std::unique(positions.begin(), positions.end()), positions.end());
+	for (vec3 position : positions) {
+		cout << "Position => (" << position.x << ", " << position.y << ", " << position.z << ")" << endl;
 	}
 
 	// Now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
@@ -165,7 +180,7 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 	}
 
 	// Return a mesh object created from the extracted mesh data
-	return Mesh(vertices, indices, textures, min, max);
+	return Mesh(mesh, vertices, indices, textures, min, max);
 }
 
 vector<Texture> ModelManager::loadMaterialTextures(Model * model, aiMaterial * mat, aiTextureType type, string typeName)

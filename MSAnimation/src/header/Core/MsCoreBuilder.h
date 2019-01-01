@@ -14,6 +14,7 @@
 #include <ModelManager/ModelManager.h>
 #include <Stage/StageDirector.h>
 #include <Stage/MsStageBuilder.h>
+#include <Processor/Processor.h>
 
 class MsCoreBuilder : public CoreBuilder {
 public:

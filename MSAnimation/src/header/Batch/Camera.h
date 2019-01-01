@@ -2,6 +2,7 @@
 
 // Global includes
 #include <vector>
+#include <iostream>
 #define GLEW_STATIC
 #include <glew/glew.h>
 #include <glm/glm.hpp>
@@ -16,6 +17,8 @@
 using std::vector;
 using glm::vec3;
 using glm::mat4;
+using std::cout;
+using std::endl;
 
 enum CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT };
 
@@ -50,8 +53,20 @@ private:
 	GLfloat mouseSensitivity;
 	GLfloat zoom;
 
+	// Move around variables
+	float distanceFromTarget;
+	float angleAroundTarget;
+	vec3 targetPosition;
+
 	// General functions
 	void updateVectors();
+
+	// Move around functions
+	void calculateZoom(GLfloat yOffset);
+	void calculatePitch(GLfloat deltaTime);
+	float calculateHorizontalDistance();
+	float calculateVerticalDistance();
+	void calculateCameraPosition(float horizontalDistance, float verticalDistance);
 
 public:
 	// Get Instance
@@ -61,7 +76,6 @@ public:
 	// Getters and setters
 	GLfloat getZoom();
 	vec3 getPosition();
-	vec3 getFront();
 	mat4 getViewMatrix();
 
 	// Movement system

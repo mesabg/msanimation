@@ -67,19 +67,19 @@ void Stage::receive(string message, void * data)
 
 	if (message == "GUI::keyInput") {
 		const int key = ((int*)data)[0];
-		const int action = ((int*)data)[0];
+		const int action = ((int*)data)[1];
 
 		if ((key == GLFW_KEY_W || key == GLFW_KEY_UP) && action == GLFW_PRESS)
-			this->camera->processKeyboard(FORWARD, 0.0f);
+			this->camera->processKeyboard(FORWARD, 5.0f);
 		
 		if ((key == GLFW_KEY_S || key == GLFW_KEY_DOWN) && action == GLFW_PRESS)
-			this->camera->processKeyboard(BACKWARD, 0.0f);
+			this->camera->processKeyboard(BACKWARD, 5.0f);
 		
 		if ((key == GLFW_KEY_A || key == GLFW_KEY_LEFT) && action == GLFW_PRESS)
-			this->camera->processKeyboard(LEFT, 0.0f);
+			this->camera->processKeyboard(LEFT, 5.0f);
 		
-		if ((key == GLFW_KEY_D || key == GLFW_KEY_RIGHT) && action == GLFW_PRESS)
-			this->camera->processKeyboard(RIGHT, 0.0f);
+		if ((key == GLFW_KEY_D || key == GLFW_KEY_RIGHT) && action == GLFW_PRESS) 
+			this->camera->processKeyboard(RIGHT, 5.0f);
 	}
 }
 

@@ -1,9 +1,55 @@
 #include <Model/Mesh.h>
 
 
-Mesh::Mesh(vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures, vec3 min, vec3 max): vertices(vertices), indices(indices), textures(textures), min(min), max(max)
+pair<GLuint, GLuint> Mesh::oppositeVerticesToEdge(GLuint i, GLuint j)
+{
+	SparseMatrix<bool> adjacent = *(this->calculateAdjacentMatrix());
+	GLuint r = -1;
+	GLuint s = -1;
+
+	for (SparseMatrix<bool>::InnerIterator it(adjacent, i); it; ++it) {
+		bool edgeA = it.value();
+		GLuint row = it.row();
+		GLuint exit = it.col();
+
+		//cout << "{" << row << ", " << exit << "}" << endl;
+
+		bool edgeB = adjacent.coeff(j, exit);
+
+		if (edgeA && edgeB) {
+			//-- Both vertices (i and j) have a COMMON EXIT VERTEX
+			GLuint commonVertex = exit;
+			if (r == -1) r = commonVertex;
+			else if (s == -1) s = commonVertex;
+			else break;
+		}
+	}
+	//cout << "pair :: (" << r << ", " << s << ")" << endl;
+
+	return std::make_pair(r, s);
+}
+
+Mesh::Mesh(aiMesh *mesh, vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures, vec3 min, vec3 max): mesh(mesh), vertices(vertices), indices(indices), textures(textures), min(min), max(max)
 {
 	this->buildBuffers();
+	//this->calculateAdjacentMatrix();
+	//cout << "Vertices size :: " << this->vertices.size() << endl;
+	//cout << "Adjacent matrix\n" << endl;
+	//std::cout << MatrixXd( (*(this->adjacent)).cast<double>() ) << std::endl;
+
+	this->calculateLaplacianMatrix();
+	//cout << "After laplacian calculation\n";
+
+	/*SparseMatrix<bool> adjacent = *(this->adjacent);
+	for (int k = 0; k<adjacent.outerSize(); ++k)
+		for (SparseMatrix<bool>::InnerIterator it(adjacent, k); it; ++it)
+		{
+			bool value = it.value();
+			unsigned i = it.row();   // row index
+			unsigned j = it.col();   // col index (here it is equal to k)
+			it.index(); // inner index, here it is equal to it.row()
+			cout << "row :: " << i << " col :: " << j << " value :: " << value << endl;
+		}*/
 }
 
 Mesh::~Mesh()
@@ -151,5 +197,97 @@ void Mesh::normalize()
 	this->min.x = (this->min.x - centro.x) / 2.0f;
 	this->min.y = (this->min.y - centro.y) / 2.0f;
 	this->min.z = (this->min.z - centro.z) / 2.0f;
+}
+
+SparseMatrix<bool>* Mesh::calculateAdjacentMatrix()
+{
+	if (this->adjacent != NULL) return this->adjacent;
+	typedef SparseMatrix<bool> SparseBoolean;
+	typedef Triplet<bool> TripletBoolean;
+
+	SparseBoolean *adjacent = new SparseBoolean(this->vertices.size(), this->vertices.size());
+	vector< TripletBoolean > triplets;
+
+	// Iterate over each triangle
+	for (GLuint i = 0; i < this->indices.size(); i += 3) {
+		GLuint indexA = this->indices[i];
+		GLuint indexB = this->indices[i+1];
+		GLuint indexC = this->indices[i+2];
+
+		cout << "Triangle (" << indexA << ", " << indexB << ", " << indexC << ")" << endl;
+
+		// Add edges as entries
+		triplets.push_back(TripletBoolean(indexA, indexB, true));
+		triplets.push_back(TripletBoolean(indexB, indexA, true));
+		triplets.push_back(TripletBoolean(indexB, indexC, true));
+		triplets.push_back(TripletBoolean(indexC, indexB, true));
+		triplets.push_back(TripletBoolean(indexA, indexC, true));
+		triplets.push_back(TripletBoolean(indexC, indexA, true));
+	}
+
+	adjacent->setFromTriplets(triplets.begin(), triplets.end());
+	this->adjacent = adjacent;
+}
+
+SparseMatrix<GLfloat>* Mesh::calculateLaplacianMatrix()
+{
+	if (this->laplacian != NULL) return this->laplacian;
+	SparseMatrix<GLfloat> *laplacian = new SparseMatrix<GLfloat>(this->vertices.size(), this->vertices.size());
+
+	// Per edges, ordered calculation
+	SparseMatrix<bool> adjacent = *(this->calculateAdjacentMatrix());
+	for (int k = 0; k < adjacent.outerSize(); ++k) {
+		for (SparseMatrix<bool>::InnerIterator it(adjacent, k); it; ++it) {
+			bool edge = it.value();
+			GLuint i = it.row();
+			GLuint j = it.col();
+
+			// Up triangle validation (Symmetry)
+			if (i > j) continue;
+
+			if (edge) {
+				// Opposite vertices to edge (triangles)
+				pair<GLuint, GLuint> opposite = this->oppositeVerticesToEdge(i, j);
+				GLuint r = opposite.first;
+				GLuint s = opposite.second;
+				//cout << "opposites (" << i << ", " << j << ") :: (" << r << ", " << s << ")\n";
+
+				// Vectors calculation
+				vec3 ri = r != -1 ? this->vertices[i].position - this->vertices[r].position : vec3(0.0f);
+				vec3 rj = r != -1 ? this->vertices[j].position - this->vertices[r].position : vec3(0.0f);
+				vec3 si = s != -1 ? this->vertices[i].position - this->vertices[s].position : vec3(0.0f);
+				vec3 sj = s != -1 ? this->vertices[j].position - this->vertices[s].position : vec3(0.0f);
+
+				// Magnitudes calculation
+				GLfloat riMagnitude = glm::length(ri);
+				GLfloat rjMagnitude = glm::length(rj);
+				GLfloat siMagnitude = glm::length(si);
+				GLfloat sjMagnitude = glm::length(sj);
+
+				// Dot product calculation
+				GLfloat riXrj = glm::dot(ri, rj);
+				GLfloat siXsj = glm::dot(si, sj);
+
+				// Angles calculation
+				GLfloat cosTheta = riXrj / (riMagnitude*rjMagnitude);
+				GLfloat cosAlpha = siXsj / (siMagnitude*sjMagnitude);
+				GLfloat theta = glm::acos(cosTheta);
+				GLfloat alpha = glm::acos(cosAlpha);
+
+				// Laplacian definition
+				GLfloat cotTheta = r != -1 ? glm::cot(theta) : 0.0f;
+				GLfloat cotAlpha = s != -1 ? glm::cot(alpha) : 0.0f;
+				GLfloat wij = cotTheta + cotAlpha;
+				laplacian->insert(i, j) = wij;
+				laplacian->insert(j, i) = wij;
+				laplacian->coeffRef(i, i) += (-1.0f*wij);
+				laplacian->coeffRef(j, j) += (-1.0f*wij);
+			}
+			else continue;
+		}
+	}
+
+	this->laplacian = laplacian;
+	return this->laplacian;
 }
 
