@@ -1,6 +1,7 @@
 #pragma once
 #pragma warning(disable:4996)
 #pragma warning(disable:4146)
+#define _USE_MATH_DEFINES
 
 // Global includes
 #include <vector>
@@ -20,6 +21,11 @@ using glm::length;
 using Eigen::SparseMatrix;
 using Eigen::Triplet;
 using Eigen::MatrixXd;
+using Eigen::Index;
+
+// Types
+typedef SparseMatrix<bool> SparseBoolean;
+typedef Triplet<bool> TripletBoolean;
 
 class Mesh {
 private:
@@ -29,10 +35,8 @@ private:
 	vector<GLuint> indices;
 	vector<Texture> textures;
 
-	// Mesh scene
-	aiMesh *mesh;
-
 	// Graph representation data
+	vector<vec3> components;
 	SparseMatrix<bool> *adjacent;
 	SparseMatrix<GLfloat> *laplacian;
 
@@ -44,10 +48,10 @@ private:
 	GLuint VAO, VBO, EBO;
 
 	// Private functions
-	pair<GLuint, GLuint> oppositeVerticesToEdge(GLuint i, GLuint j);
+	pair<GLint, GLint> oppositeVerticesToEdge(GLuint i, GLuint j);
 
 public:
-	Mesh(aiMesh *mesh, vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures, vec3 min = vec3(0.0f, 0.0f, 0.0f), vec3 max = vec3(0.0f, 0.0f, 0.0f));
+	Mesh(vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures, vector<vec3>components, vector<TripletBoolean> adjacency, vec3 min = vec3(0.0f, 0.0f, 0.0f), vec3 max = vec3(0.0f, 0.0f, 0.0f));
 	~Mesh();
 
 	// Getter and setters

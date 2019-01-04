@@ -35,6 +35,7 @@ private:
 	void processNode(Model* model, aiNode* node, const aiScene* scene);
 	Mesh processMesh(Model * model, aiMesh *mesh, const aiScene *scene);
 	vector<Texture> loadMaterialTextures(Model * model, aiMaterial *mat, aiTextureType type, string typeName);
+	GLuint mergeComponent(vector<vec3> &components, vec3 &position);
 
 public:
 	// Get Instance

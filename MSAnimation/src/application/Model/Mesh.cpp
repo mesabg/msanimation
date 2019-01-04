@@ -1,55 +1,62 @@
 #include <Model/Mesh.h>
 
 
-pair<GLuint, GLuint> Mesh::oppositeVerticesToEdge(GLuint i, GLuint j)
+pair<GLint, GLint> Mesh::oppositeVerticesToEdge(GLuint i, GLuint j)
 {
-	SparseMatrix<bool> adjacent = *(this->calculateAdjacentMatrix());
-	GLuint r = -1;
-	GLuint s = -1;
+	SparseMatrix<bool> adjacent = *(this->adjacent);
+	GLint r = -1;
+	GLint s = -1;
 
 	for (SparseMatrix<bool>::InnerIterator it(adjacent, i); it; ++it) {
 		bool edgeA = it.value();
-		GLuint row = it.row();
-		GLuint exit = it.col();
+		Index in = it.col();
+		Index out = it.row();
 
-		//cout << "{" << row << ", " << exit << "}" << endl;
-
-		bool edgeB = adjacent.coeff(j, exit);
+		bool edgeB = adjacent.coeff(out, j);
 
 		if (edgeA && edgeB) {
 			//-- Both vertices (i and j) have a COMMON EXIT VERTEX
-			GLuint commonVertex = exit;
+			GLint commonVertex = (GLint)out;
 			if (r == -1) r = commonVertex;
 			else if (s == -1) s = commonVertex;
 			else break;
 		}
 	}
-	//cout << "pair :: (" << r << ", " << s << ")" << endl;
 
 	return std::make_pair(r, s);
 }
 
-Mesh::Mesh(aiMesh *mesh, vector<Vertex> vertices, vector<GLuint> indices, vector<Texture> textures, vec3 min, vec3 max): mesh(mesh), vertices(vertices), indices(indices), textures(textures), min(min), max(max)
+Mesh::Mesh(vector<Vertex> vertices, 
+	vector<GLuint> indices, 
+	vector<Texture> textures, 
+	vector<vec3>components, 
+	vector<TripletBoolean> adjacency, 
+	vec3 min, vec3 max): vertices(vertices), indices(indices), textures(textures), min(min), max(max)
 {
 	this->buildBuffers();
-	//this->calculateAdjacentMatrix();
-	//cout << "Vertices size :: " << this->vertices.size() << endl;
-	//cout << "Adjacent matrix\n" << endl;
-	//std::cout << MatrixXd( (*(this->adjacent)).cast<double>() ) << std::endl;
 
+	//Adjacency matrix
+	this->components = components;
+	this->adjacent = new SparseBoolean(this->components.size(), this->components.size());
+	this->adjacent->setFromTriplets(adjacency.begin(), adjacency.end());
 	this->calculateLaplacianMatrix();
-	//cout << "After laplacian calculation\n";
 
-	/*SparseMatrix<bool> adjacent = *(this->adjacent);
-	for (int k = 0; k<adjacent.outerSize(); ++k)
-		for (SparseMatrix<bool>::InnerIterator it(adjacent, k); it; ++it)
-		{
-			bool value = it.value();
-			unsigned i = it.row();   // row index
-			unsigned j = it.col();   // col index (here it is equal to k)
-			it.index(); // inner index, here it is equal to it.row()
-			cout << "row :: " << i << " col :: " << j << " value :: " << value << endl;
-		}*/
+	SparseMatrix<GLfloat> laplacian = *(this->laplacian);
+	for (int k = 0; k < laplacian.outerSize(); ++k) {
+		for (SparseMatrix<GLfloat>::InnerIterator it(laplacian, k); it; ++it) {
+			GLfloat value = it.value();
+			Index row = it.row();
+			Index col = it.col();
+
+			cout << row << ", " << col << ", " << value << endl;
+		}
+	}
+
+	/*cout << "Adjacent matrix\n" << endl;
+	std::cout << MatrixXd( (*(this->adjacent)).cast<double>() ) << std::endl;
+
+	cout << "After laplacian calculation\n";
+	std::cout << MatrixXd( (*(this->laplacian)).cast<double>() ) << std::endl;*/
 }
 
 Mesh::~Mesh()
@@ -202,8 +209,6 @@ void Mesh::normalize()
 SparseMatrix<bool>* Mesh::calculateAdjacentMatrix()
 {
 	if (this->adjacent != NULL) return this->adjacent;
-	typedef SparseMatrix<bool> SparseBoolean;
-	typedef Triplet<bool> TripletBoolean;
 
 	SparseBoolean *adjacent = new SparseBoolean(this->vertices.size(), this->vertices.size());
 	vector< TripletBoolean > triplets;
@@ -213,8 +218,6 @@ SparseMatrix<bool>* Mesh::calculateAdjacentMatrix()
 		GLuint indexA = this->indices[i];
 		GLuint indexB = this->indices[i+1];
 		GLuint indexC = this->indices[i+2];
-
-		cout << "Triangle (" << indexA << ", " << indexB << ", " << indexC << ")" << endl;
 
 		// Add edges as entries
 		triplets.push_back(TripletBoolean(indexA, indexB, true));
@@ -232,10 +235,11 @@ SparseMatrix<bool>* Mesh::calculateAdjacentMatrix()
 SparseMatrix<GLfloat>* Mesh::calculateLaplacianMatrix()
 {
 	if (this->laplacian != NULL) return this->laplacian;
-	SparseMatrix<GLfloat> *laplacian = new SparseMatrix<GLfloat>(this->vertices.size(), this->vertices.size());
+	SparseMatrix<GLfloat> *laplacian = new SparseMatrix<GLfloat>(this->components.size(), this->components.size());
 
 	// Per edges, ordered calculation
-	SparseMatrix<bool> adjacent = *(this->calculateAdjacentMatrix());
+	SparseMatrix<bool> adjacent = *(this->adjacent);
+	//cout << "pair :: (" << r << ", " << s << ")" << endl << endl;
 	for (int k = 0; k < adjacent.outerSize(); ++k) {
 		for (SparseMatrix<bool>::InnerIterator it(adjacent, k); it; ++it) {
 			bool edge = it.value();
@@ -247,16 +251,15 @@ SparseMatrix<GLfloat>* Mesh::calculateLaplacianMatrix()
 
 			if (edge) {
 				// Opposite vertices to edge (triangles)
-				pair<GLuint, GLuint> opposite = this->oppositeVerticesToEdge(i, j);
-				GLuint r = opposite.first;
-				GLuint s = opposite.second;
-				//cout << "opposites (" << i << ", " << j << ") :: (" << r << ", " << s << ")\n";
+				pair<GLint, GLint> opposite = this->oppositeVerticesToEdge(i, j);
+				GLint r = opposite.first;
+				GLint s = opposite.second;
 
 				// Vectors calculation
-				vec3 ri = r != -1 ? this->vertices[i].position - this->vertices[r].position : vec3(0.0f);
-				vec3 rj = r != -1 ? this->vertices[j].position - this->vertices[r].position : vec3(0.0f);
-				vec3 si = s != -1 ? this->vertices[i].position - this->vertices[s].position : vec3(0.0f);
-				vec3 sj = s != -1 ? this->vertices[j].position - this->vertices[s].position : vec3(0.0f);
+				vec3 ri = r != -1 ? this->components[i] - this->components[r] : vec3(0.0f);
+				vec3 rj = r != -1 ? this->components[j] - this->components[r] : vec3(0.0f);
+				vec3 si = s != -1 ? this->components[i] - this->components[s] : vec3(0.0f);
+				vec3 sj = s != -1 ? this->components[j] - this->components[s] : vec3(0.0f);
 
 				// Magnitudes calculation
 				GLfloat riMagnitude = glm::length(ri);
@@ -290,4 +293,3 @@ SparseMatrix<GLfloat>* Mesh::calculateLaplacianMatrix()
 	this->laplacian = laplacian;
 	return this->laplacian;
 }
-

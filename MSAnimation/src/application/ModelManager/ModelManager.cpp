@@ -20,7 +20,7 @@ Model * ModelManager::load(string filePath)
 
 	// Read file via ASSIMP
 	Assimp::Importer importer;
-	const aiScene *scene = importer.ReadFile(filePath, aiProcessPreset_TargetRealtime_MaxQuality);
+	const aiScene *scene = importer.ReadFile(filePath, aiProcess_Triangulate);
 
 	// Check for errors
 	if (!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
@@ -70,8 +70,9 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 	vector<GLuint> indices;
 	vector<Texture> textures;
 
-	// Extra data
-	vector<vec3> positions;
+	// Graph data
+	vector<vec3> components;
+	vector<TripletBoolean> adjacency;
 
 	// Max/Min positions
 	vec3 min = vec3(0.0f, 0.0f, 0.0f);
@@ -104,7 +105,7 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 		vector.y = mesh->mVertices[i].y;
 		vector.z = mesh->mVertices[i].z;
 		vertex.position = vector;
-		positions.push_back(vector);
+		this->mergeComponent(components, vector);
 
 		// Normals
 		if (mesh->HasNormals()) {
@@ -141,22 +142,45 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 		vertices.push_back(vertex);
 	}
 
-	// Unique positions (vertices)
-	std::sort(positions.begin(), positions.end());
-	positions.erase(std::unique(positions.begin(), positions.end()), positions.end());
-	for (vec3 position : positions) {
-		cout << "Position => (" << position.x << ", " << position.y << ", " << position.z << ")" << endl;
-	}
-
 	// Now wak through each of the mesh's faces (a face is a mesh its triangle) and retrieve the corresponding vertex indices.
 	for (GLuint i = 0; i < mesh->mNumFaces; i++)
 	{
 		aiFace face = mesh->mFaces[i];
+
 		// Retrieve all indices of the face and store them in the indices vector
-		for (GLuint j = 0; j < face.mNumIndices; j++)
+		// Triangulate
+		GLuint indexA = face.mIndices[0];
+		GLuint indexB = face.mIndices[1];
+		GLuint indexC = face.mIndices[2];
+
+		indices.push_back(indexA);
+		indices.push_back(indexB);
+		indices.push_back(indexC);
+
+		indexA = this->mergeComponent(components, vertices[indexA].position);
+		indexB = this->mergeComponent(components, vertices[indexB].position);
+		indexC = this->mergeComponent(components, vertices[indexC].position);
+
+		adjacency.push_back(TripletBoolean(indexA, indexB, true));
+		adjacency.push_back(TripletBoolean(indexB, indexA, true));
+		adjacency.push_back(TripletBoolean(indexA, indexC, true));
+		adjacency.push_back(TripletBoolean(indexC, indexA, true));
+		adjacency.push_back(TripletBoolean(indexB, indexC, true));
+		adjacency.push_back(TripletBoolean(indexC, indexB, true));
+
+		/*for (GLuint j = 0; j < face.mNumIndices; j++)
 		{
-			indices.push_back(face.mIndices[j]);
-		}
+			
+			// Build adjacency
+			for (GLuint k=j+1; k < face.mNumIndices; k++)
+			{
+				GLuint indexA = this->mergeComponent(components, vertices[face.mIndices[j]].position);
+				GLuint indexB = this->mergeComponent(components, vertices[face.mIndices[k]].position);
+				cout << "Indexes :: (" << indexA << ", " << indexB << ")\n";
+				adjacency.push_back( TripletBoolean(indexA, indexB, true) );
+				//adjacency.push_back( TripletBoolean(indexB, indexA, true) );
+			}
+		}*/
 	}
 
 	// Process materials
@@ -180,7 +204,7 @@ Mesh ModelManager::processMesh(Model * model, aiMesh * mesh, const aiScene * sce
 	}
 
 	// Return a mesh object created from the extracted mesh data
-	return Mesh(mesh, vertices, indices, textures, min, max);
+	return Mesh(vertices, indices, textures, components, adjacency, min, max);
 }
 
 vector<Texture> ModelManager::loadMaterialTextures(Model * model, aiMaterial * mat, aiTextureType type, string typeName)
@@ -218,6 +242,18 @@ vector<Texture> ModelManager::loadMaterialTextures(Model * model, aiMaterial * m
 	}
 
 	return textures;
+}
+
+GLuint ModelManager::mergeComponent(vector<vec3>& components, vec3 & position)
+{
+	GLuint index = 0;
+	for (vec3 component : components) {
+		if (component == position)
+			return index;
+		index++;
+	}
+	components.push_back(position);
+	return index;
 }
 
 ModelManager * ModelManager::instance(Core * mediator)
